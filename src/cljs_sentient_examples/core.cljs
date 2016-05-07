@@ -3,7 +3,6 @@
 
 (enable-console-print!)
 
-; TODO convert that damn js object to something clojurescripty to pass back to app-state
 ; TODO css up this bitch, prettify pls.
 ; TODO clear up code
 
