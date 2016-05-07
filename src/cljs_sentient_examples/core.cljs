@@ -3,51 +3,55 @@
 
 (enable-console-print!)
 
-;; TODO write a cljs library like honeysql for using sentient?
-;; TODO include randomise button to insert all values.
+; TODO convert that damn js object to something clojurescripty to pass back to app-state
+; TODO css up this bitch, prettify pls.
+; TODO clear up code
 
-(defonce app-state (atom {:text "Sentient Test"
-                          :x ""
-                          :y 4
-                          :z 2}))
-
-(defn exp [x n]
-  (reduce * (repeat n x)))
+(defonce app-state
+  (atom {:x ""
+         :y ""
+         :z 72}))
 
 (defn machine-code []
-  (. js/Sentient (compile
-               (str
-                "int20 x;"
-                "int20 y;"
-                "int20 z;"
-                ""
-                "int20 x_power_3;"
-                "int20 y_power_2;"
-                "x_power_3 = x * x * x;"
-                "y_power_2 = y * y;"
-                ""
-                "z = x_power_3 + y_power_2;"
-                "z += x;"
-                "z -= y;"
-                "vary x, y, z;"))))
+  (. js/Sentient
+     (compile
+      (str
+       "int x, y;"
+       ""
+       "x_power_3 = x * x * x;"
+       "y_power_2 = y * y;"
+       ""
+       "z = x_power_3 + y_power_2;"
+       "z += x;"
+       "z -= y;"
+       ""
+       "vary x, y, z;"))))
 
-(defn sentient-real []
+(defn read-from-input [name]
+  (let [value (js/parseInt (name @app-state))]
+    (if (js/isNaN value)
+      :no-value value)))
+
+(defn assign [collection name value]
+  (if-not (js/isNaN value)
+    (aset collection name value)))
+
+(defn jsx->clj
+  [x]
+  (into {} (for [k (.keys js/Object x)] [(keyword k) (aget x k)])))
+  
+(defn sentient []
   (do
-    (def assignments (js-obj))
-    (aset assignments "z" 72)
-    (println assignments)
+    (def args (js-obj))
+    (assign args "x" (read-from-input :x))
+    (assign args "y" (read-from-input :y))
+    (assign args "z" (read-from-input :z))
+    (println args)
     (let [result (. js/Sentient (run
                                   (machine-code)
-                                  assignments))]
+                                  args))]
+      (reset! app-state (jsx->clj result))
       (println result))))
-
-; TODO you still need to Sentient.run with (machinecode, jsmap of vars)
-
-(defn sentient [] (swap! app-state assoc :z
-                         (- (+ (+ (exp (js/parseInt (:y @app-state)) 3)
-                            (exp (js/parseInt (:x @app-state)) 2))
-                            (js/parseInt (:x @app-state)))
-                            (js/parseInt (:y @app-state)))))
 
 (defn input [value]
     [:input {:type "text"
@@ -60,17 +64,10 @@
 
 (defn interface []
   [:div
-   [:h1 (:text @app-state)]
-   [:p "The value of Y is " (:y @app-state)]
+   [:h1 "My first Sentient"]
    [:p (input :x) "^3 + " (input :y) "^2 + " (input :x) " - " (input :y) " = " (input :z)]])
 
 (reagent/render-component [interface]
                           (. js/document (getElementById "app")))
 
-(defn on-js-reload []
-  (sentient-real)
-  ;(println (clj->js {:x 3}))
-  ;; optionally touch your app-state to force rerendering depending on
-  ;; your application
-  ;; (swap! app-state update-in [:__figwheel_counter] inc)
-)
+(defn on-js-reload [] (println "Reloaded!"))
