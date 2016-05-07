@@ -11,20 +11,26 @@
 (defonce app-state (atom {:text "Sentient Test"
                           :x ""
                           :y 4
-                          :z ""}))
+                          :z 2}))
 
-; (defn sentient x + y)
+;(def sentient (swap! app-state assoc :z (+ (:x @app-state) (:y @app-state))))
+(defn exp [x n]
+  (reduce * (repeat n x)))
 
-;(defn update-value [value]
-;  (swap! app-state update-in [:x] value))
+(defn sentient [] (swap! app-state assoc :z
+                         (- (+ (+ (exp (js/parseInt (:y @app-state)) 3)
+                            (exp (js/parseInt (:x @app-state)) 2))
+                            (js/parseInt (:x @app-state)))
+                            (js/parseInt (:y @app-state)))))
 
 (defn input [value]
     [:input {:type "text"
              :placeholder (name value)
              :value (value @app-state)
              :class "style-1"
-             :size 2
-             :on-change #(swap! app-state assoc value (-> % .-target .-value))}])
+             :size 5
+             :on-change #(do (swap! app-state assoc value (-> % .-target .-value))
+                             (sentient))}])
 
 (defn interface []
   [:div
