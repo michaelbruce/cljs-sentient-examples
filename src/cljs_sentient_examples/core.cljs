@@ -3,9 +3,7 @@
 
 (enable-console-print!)
 
-;; define your app data so that it doesn't get over-written on reload
 ;; TODO write a cljs library like honeysql for using sentient?
-;; TODO if y doesn't need to be global, push it down as a let inside defn input
 ;; TODO include randomise button to insert all values.
 
 (defonce app-state (atom {:text "Sentient Test"
@@ -13,9 +11,37 @@
                           :y 4
                           :z 2}))
 
-;(def sentient (swap! app-state assoc :z (+ (:x @app-state) (:y @app-state))))
 (defn exp [x n]
   (reduce * (repeat n x)))
+
+(defn machine-code []
+  (. js/Sentient (compile
+               (str
+                "int20 x;"
+                "int20 y;"
+                "int20 z;"
+                ""
+                "int20 x_power_3;"
+                "int20 y_power_2;"
+                "x_power_3 = x * x * x;"
+                "y_power_2 = y * y;"
+                ""
+                "z = x_power_3 + y_power_2;"
+                "z += x;"
+                "z -= y;"
+                "vary x, y, z;"))))
+
+(defn sentient-real []
+  (do
+    (def assignments (js-obj))
+    (aset assignments "z" 72)
+    (println assignments)
+    (let [result (. js/Sentient (run
+                                  (machine-code)
+                                  assignments))]
+      (println result))))
+
+; TODO you still need to Sentient.run with (machinecode, jsmap of vars)
 
 (defn sentient [] (swap! app-state assoc :z
                          (- (+ (+ (exp (js/parseInt (:y @app-state)) 3)
@@ -42,6 +68,8 @@
                           (. js/document (getElementById "app")))
 
 (defn on-js-reload []
+  (sentient-real)
+  ;(println (clj->js {:x 3}))
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
